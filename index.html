@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>FF DPI & Sensitivity</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#07090e;
+  --panel:rgba(22, 27, 34, 0.6);
+  --line:rgba(255,255,255,0.1);
+  --txt:#e6edf3;
+  --dim:#8b949e;
+  --accent:#00d9ff;
+  --accent-glow:rgba(0, 217, 255, 0.3);
+  --gold:#f5c542;
+  --green:#3ddc84;
+}
+
+body{
+  background-color:var(--bg);
+  color:var(--txt);
+  font-family:'Outfit', -apple-system, sans-serif;
+  font-size:14px;
+  min-height:100vh;
+  padding-bottom:40px;
+  background-image: 
+    radial-gradient(circle at 0% 0%, rgba(0, 217, 255, 0.1) 0%, transparent 40%),
+    radial-gradient(circle at 100% 100%, rgba(160, 108, 255, 0.1) 0%, transparent 40%);
+  background-attachment: fixed;
+  overflow-x: hidden;
+}
+
+#particleCanvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  z-index: 0; 
+  pointer-events: none;
+}
+
+.wrap{max-width:480px;margin:0 auto;padding:24px 16px;position:relative;z-index:1}
+
+.header{text-align:center;padding:10px 0 24px; position:relative; z-index:10;}
+.header h1{
+  font-size:32px;font-weight:800;letter-spacing:1px;
+  background:linear-gradient(135deg,#fff 0%, var(--accent) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  text-shadow:0 0 30px var(--accent-glow);
+}
+.header p{font-size:12px;color:var(--dim);letter-spacing:3px;margin-top:4px;text-transform:uppercase;font-weight:600}
+
+.card{
+  background:var(--panel);border:1px solid var(--line);border-radius:20px;
+  padding:20px;margin-bottom:16px;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  box-shadow:0 8px 32px rgba(0,0,0,0.3);transition:transform 0.2s, border-color 0.2s;
+  position: relative;
+  z-index: 10;
+}
+.card h3{
+  font-size:13px;color:var(--accent);letter-spacing:2px;text-transform:uppercase;
+  margin-bottom:16px;font-weight:800;display:flex;align-items:center;gap:8px;
+}
+.card h3::before{content:'';width:4px;height:16px;background:var(--accent);border-radius:4px;box-shadow:0 0 10px var(--accent)}
+
+/* Ô NHẬP TÊN MÁY */
+.input-group { position: relative; width: 100%; z-index: 100; }
+.input-group input {
+  width: 100%; height: 52px; background: rgba(0,0,0,0.3); border: 1px solid var(--line);
+  border-radius: 14px; color: var(--txt); padding: 0 16px; font-size: 16px;
+  font-family: 'Outfit', sans-serif; transition: all 0.3s; outline: none;
+}
+.input-group input:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-glow); background: rgba(0,0,0,0.5);
+}
+.input-group input::placeholder { color: #555; font-weight: 400; }
+
+/* RESULT */
+.resultBox{
+  display:none;background:rgba(0,0,0,0.5);border:1px solid var(--line);
+  border-radius:16px;padding:20px;margin-bottom:16px;
+  animation: slideUp 0.4s ease-out;
+  position: relative;
+  z-index: 10;
+}
+.resultBox.on{display:block}
+@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+.resultBox h4{color:var(--gold);font-size:15px;margin-bottom:16px;text-align:center;font-weight:600;letter-spacing:1px;}
+
+.resRow{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:14px;}
+.resRow:last-child{border:none;padding-bottom:0}
+.resRow span{color:var(--dim);font-weight:400}
+.resRow b{color:var(--txt);font-variant-numeric:tabular-nums;font-weight:800;font-size:16px}
+
+/* BUTTONS */
+.btn{
+  display:flex;justify-content:center;align-items:center;gap:8px;
+  width:100%;padding:16px;border:none;border-radius:14px;font-weight:800;
+  font-size:14px;letter-spacing:1px;cursor:pointer;text-align:center;
+  text-decoration:none;text-transform:uppercase;margin-bottom:12px;
+  transition:all 0.2s;position:relative;overflow:hidden;
+  z-index: 10;
+}
+.btn::after{content:'';position:absolute;top:0;left:-100%;width:50%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent);transform:skewX(-20deg);transition:left 0.5s;}
+.btn:hover::after{left:100%}
+
+.btn.gold{background:linear-gradient(135deg,#f5c542,#c99a1e);color:#2a1d00;box-shadow:0 6px 20px rgba(245,197,66,0.3)}
+.btn.primary{background:linear-gradient(135deg,#00d9ff,#0094b8);color:#001018;box-shadow:0 6px 20px var(--accent-glow)}
+.btn.green{background:linear-gradient(135deg,#3ddc84,#1fa85f);color:#002610;box-shadow:0 6px 20px rgba(61,220,132,0.3)}
+.btn:active{transform:scale(0.98);box-shadow:none}
+
+.step{display:flex;gap:14px;margin-bottom:16px;align-items:flex-start; position:relative; z-index:10;}
+.step .num{width:28px;height:28px;border-radius:50%;background:rgba(0,217,255,0.1);color:var(--accent);border:1px solid var(--accent);font-weight:800;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;box-shadow:0 0 10px var(--accent-glow);}
+.step .txt{font-size:13px;line-height:1.6;color:var(--dim)}
+.step .txt b{color:var(--txt);font-size:14px;display:block;margin-bottom:2px;font-weight:600}
+.step .txt small{display:block;font-size:12px}
+.step .txt code{background:rgba(0,0,0,0.5);border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-family:monospace;color:var(--accent);font-size:12px;display:inline-block;margin-top:4px;}
+</style>
+</head>
+<body>
+
+<canvas id="particleCanvas"></canvas>
+
+<!-- NHẠC NỀN (Mày up file nhac.mp3 lên github, nó sẽ tự phát) -->
+<audio id="bgMusic" loop>
+  <source src="nhac.mp3" type="audio/mpeg">
+</audio>
+
+<div class="wrap">
+  <div class="header">
+    <h1>DPI & SENS</h1>
+    <p>Free Fire Tuning</p>
+  </div>
+
+  <div class="card">
+    <h3>Nhập tên thiết bị</h3>
+    <div class="input-group">
+      <input type="text" id="deviceInput" placeholder="VD: iPhone 13 Pro Max, Samsung S23..." oninput="handleSearch()">
+    </div>
+  </div>
+
+  <div class="resultBox" id="resultBox">
+    <h4 id="resTitle">Độ nhạy cho</h4>
+    <div class="resRow"><span>General</span><b id="rGen">-</b></div>
+    <div class="resRow"><span>Red Dot</span><b id="rRed">-</b></div>
+    <div class="resRow"><span>2x Scope</span><b id="r2x">-</b></div>
+    <div class="resRow"><span>4x Scope</span><b id="r4x">-</b></div>
+    <div class="resRow"><span>AWM Scope</span><b id="rAwm">-</b></div>
+    <div class="resRow"><span>DPI Khuyên dùng</span><b id="rDpi" style="color:var(--accent)">-</b></div>
+    <div class="resRow"><span>Fire Button</span><b id="rFire">-</b></div>
+  </div>
+
+  <div id="downloadSection" style="display:none">
+    <div class="card" id="iosDown">
+      <h3>Cài đặt iOS</h3>
+      <div class="step">
+        <div class="num">1</div>
+        <div class="txt"><b>Cấu hình DPI (Mobileconfig)</b><small>Tải file cấu hình DPI Luxury</small></div>
+      </div>
+      <a class="btn gold" href="https://www.mediafire.com/file/%20%207rpi2a1xusblrju/%20%20DPIConfigLuxury%2B.mobileconfig/file?dkey=sihrsppgiak&r=150" target="_blank">⬇ Tải File Cấu Hình DPI</a>
+
+      <div class="step" style="margin-top:24px">
+        <div class="num">2</div>
+        <div class="txt"><b>Dấu câu (Kéo tâm)</b><small>Bấm tải file bên dưới</small></div>
+      </div>
+      <a class="btn primary" href="https://www.mediafire.com/file/3zfp6blmrkjq4ug/Tie%25CC%2582%25CC%2581n_%25C4%2591a%25CC%25A3t_v6.accessibilityPunctuationGroup/file" target="_blank">⬇ Tải File Dấu Câu</a>
+
+      <div class="step" style="margin-top:24px">
+        <div class="num">3</div>
+        <div class="txt"><b>Cách cài đặt</b><small>Vào Cài đặt > Cài đặt chung > Quản lý thiết bị. Bấm vào cấu hình và chọn Cài đặt (Install).</small></div>
+      </div>
+    </div>
+
+    <div class="card" id="adrDown">
+      <h3>Cài đặt Android</h3>
+      <div class="step">
+        <div class="num">1</div>
+        <div class="txt"><b>Tải file cấu hình</b><small>Sử dụng ZArchiver hoặc MT Manager</small></div>
+      </div>
+      <div class="step">
+        <div class="num">2</div>
+        <div class="txt"><b>Chép file</b><small>Copy file <code>ADR_SYSTEM_NEW_PRO.ini</code> vào:</small><small><code>Android/data/com.dts.freefireth/files/</code></small></div>
+      </div>
+      <div class="step">
+        <div class="num">3</div>
+        <div class="txt"><b>Khởi động lại</b><small>Mở lại Free Fire để áp dụng.</small></div>
+      </div>
+      <a class="btn green" href="https://www.mediafire.com/file/07nknacruask4n4/ADR_SYSTEM_NEW_PRO.ini/file" target="_blank">⬇ Tải File .Ini (Data Game)</a>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+// DATA PHẲNG
+var DB = [
+  // iOS
+  { name: "iPhone 15 Pro Max", gen: 155, red: 145, s2: 125, s4: 105, awm: 45, dpi: "Max", fire: 65, os: "ios" },
+  { name: "iPhone 15 Pro", gen: 160, red: 150, s2: 130, s4: 110, awm: 50, dpi: "Max", fire: 65, os: "ios" },
+  { name: "iPhone 15 Plus", gen: 170, red: 160, s2: 140, s4: 120, awm: 60, dpi: "Max", fire: 60, os: "ios" },
+  { name: "iPhone 15", gen: 165, red: 155, s2: 135, s4: 115, awm: 55, dpi: "Max", fire: 60, os: "ios" },
+  { name: "iPhone 14 Pro Max", gen: 165, red: 155, s2: 135, s4: 115, awm: 55, dpi: "Max", fire: 60, os: "ios" },
+  { name: "iPhone 14 Pro", gen: 170, red: 160, s2: 140, s4: 120, awm: 60, dpi: "Max", fire: 60, os: "ios" },
+  { name: "iPhone 14 Plus", gen: 180, red: 170, s2: 150, s4: 130, awm: 70, dpi: "Max", fire: 55, os: "ios" },
+  { name: "iPhone 14", gen: 175, red: 165, s2: 145, s4: 125, awm: 65, dpi: "Max", fire: 55, os: "ios" },
+  { name: "iPhone 13 Pro Max", gen: 170, red: 160, s2: 140, s4: 120, awm: 60, dpi: "Max", fire: 60, os: "ios" },
+  { name: "iPhone 13 Pro", gen: 175, red: 165, s2: 145, s4: 125, awm: 65, dpi: "Max", fire: 60, os: "ios" },
+  { name: "iPhone 13 Mini", gen: 185, red: 175, s2: 155, s4: 135, awm: 75, dpi: "Max", fire: 50, os: "ios" },
+  { name: "iPhone 13", gen: 180, red: 170, s2: 150, s4: 130, awm: 70, dpi: "Max", fire: 55, os: "ios" },
+  { name: "iPhone 12 Pro Max", gen: 175, red: 165, s2: 145, s4: 125, awm: 65, dpi: "Max", fire: 55, os: "ios" },
+  { name: "iPhone 12 Pro", gen: 180, red: 170, s2: 150, s4: 130, awm: 70, dpi: "Max", fire: 55, os: "ios" },
+  { name: "iPhone 12 Mini", gen: 190, red: 180, s2: 160, s4: 140, awm: 80, dpi: "Max", fire: 50, os: "ios" },
+  { name: "iPhone 12", gen: 185, red: 175, s2: 155, s4: 135, awm: 75, dpi: "Max", fire: 50, os: "ios" },
+  { name: "iPhone 11 Pro Max", gen: 180, red: 170, s2: 150, s4: 130, awm: 70, dpi: "Max", fire: 55, os: "ios" },
+  { name: "iPhone 11 Pro", gen: 185, red: 175, s2: 155, s4: 135, awm: 75, dpi: "Max", fire: 55, os: "ios" },
+  { name: "iPhone 11", gen: 190, red: 180, s2: 160, s4: 140, awm: 80, dpi: "Max", fire: 50, os: "ios" },
+  { name: "iPhone XS Max", gen: 190, red: 180, s2: 160, s4: 140, awm: 80, dpi: "Max", fire: 50, os: "ios" },
+  { name: "iPhone XS", gen: 190, red: 180, s2: 160, s4: 140, awm: 80, dpi: "Max", fire: 50, os: "ios" },
+  { name: "iPhone XR", gen: 195, red: 185, s2: 165, s4: 145, awm: 85, dpi: "Max", fire: 50, os: "ios" },
+  { name: "iPhone X", gen: 195, red: 185, s2: 165, s4: 145, awm: 85, dpi: "Max", fire: 50, os: "ios" },
+  { name: "iPhone 8 Plus", gen: 200, red: 190, s2: 170, s4: 150, awm: 90, dpi: "Max", fire: 45, os: "ios" },
+  { name: "iPhone 8", gen: 200, red: 190, s2: 170, s4: 150, awm: 90, dpi: "Max", fire: 45, os: "ios" },
+  { name: "iPhone 7 Plus", gen: 205, red: 195, s2: 175, s4: 155, awm: 90, dpi: "Max", fire: 45, os: "ios" },
+  { name: "iPhone 7", gen: 205, red: 195, s2: 175, s4: 155, awm: 90, dpi: "Max", fire: 45, os: "ios" },
+  { name: "iPhone 6s Plus", gen: 210, red: 200, s2: 180, s4: 160, awm: 95, dpi: "Max", fire: 40, os: "ios" },
+  { name: "iPhone 6s", gen: 210, red: 200, s2: 180, s4: 160, awm: 95, dpi: "Max", fire: 40, os: "ios" },
+  { name: "iPhone 6 Plus", gen: 210, red: 200, s2: 180, s4: 160, awm: 95, dpi: "Max", fire: 40, os: "ios" },
+  { name: "iPhone 6", gen: 210, red: 200, s2: 180, s4: 160, awm: 95, dpi: "Max", fire: 40, os: "ios" },
+  { name: "iPhone SE 1", gen: 215, red: 205, s2: 185, s4: 165, awm: 100, dpi: "Max", fire: 35, os: "ios" },
+  { name: "iPhone 5s", gen: 220, red: 210, s2: 190, s4: 170, awm: 100, dpi: "Max", fire: 30, os: "ios" },
+  { name: "iPhone 4s", gen: 220, red: 210, s2: 190, s4: 170, awm: 100, dpi: "Max", fire: 30, os: "ios" },
+  { name: "iPad Pro", gen: 160, red: 150, s2: 130, s4: 110, awm: 50, dpi: "Max", fire: 65, os: "ios" },
+  { name: "iPad Air", gen: 180, red: 170, s2: 150, s4: 130, awm: 70, dpi: "Max", fire: 60, os: "ios" },
+  { name: "iPad Mini", gen: 190, red: 180, s2: 160, s4: 140, awm: 80, dpi: "Max", fire: 60, os: "ios" },
+  { name: "iPad", gen: 200, red: 190, s2: 170, s4: 150, awm: 90, dpi: "Max", fire: 60, os: "ios" },
+
+  // Android
+  { name: "Samsung Note 20 Ultra", gen: 180, red: 170, s2: 150, s4: 130, awm: 70, dpi: "480 DPI", fire: 60, os: "android" },
+  { name: "Samsung Note 10", gen: 185, red: 175, s2: 150, s4: 130, awm: 75, dpi: "440 DPI", fire: 55, os: "android" },
+  { name: "Samsung Note 9", gen: 190, red: 180, s2: 160, s4: 140, awm: 80, dpi: "440 DPI", fire: 55, os: "android" },
+  { name: "Samsung S24 Ultra", gen: 175, red: 165, s2: 145, s4: 125, awm: 65, dpi: "480 DPI", fire: 65, os: "android" },
+  { name: "Samsung S23 Ultra", gen: 175, red: 165, s2: 145, s4: 125, awm: 65, dpi: "480 DPI", fire: 65, os: "android" },
+  { name: "Samsung S22 Ultra", gen: 180, red: 170, s2: 150, s4: 130, awm: 70, dpi: "480 DPI", fire: 60, os: "android" },
+  { name: "Samsung S21", gen: 185, red: 175, s2: 150, s4: 130, awm: 75, dpi: "480 DPI", fire: 60, os: "android" },
+  { name: "Samsung S20", gen: 185, red: 175, s2: 150, s4: 130, awm: 75, dpi: "480 DPI", fire: 60, os: "android" },
+  { name: "Samsung A54", gen: 185, red: 175, s2: 155, s4: 135, awm: 75, dpi: "440 DPI", fire: 55, os: "android" },
+  { name: "Samsung A53", gen: 190, red: 180, s2: 160, s4: 140, awm: 80, dpi: "420 DPI", fire: 55, os: "android" },
+  { name: "Samsung A52", gen: 190, red: 180, s2: 160, s4: 140, awm: 80, dpi: "420 DPI", fire: 55, os: "android" },
+  { name: "Samsung A32", gen: 195, red: 185, s2: 165, s4: 145, awm: 85, dpi: "400 DPI", fire: 60, os: "android" },
+  { name: "Samsung A13", gen: 200, red: 190, s2: 170, s4: 150, awm: 90, dpi: "400 DPI", fire: 60, os: "android" },
+  { name: "Xiaomi 13", gen: 180, red: 170, s2: 150, s4: 130, awm: 70, dpi: "440 DPI", fire: 55, os: "android" },
+  { name: "Xiaomi 12", gen: 180, red: 170, s2: 150, s4: 130, awm: 70, dpi: "440 DPI", fire: 55, os: "android" },
+  { name: "POCO X5 Pro", gen: 185, red: 175, s2: 150, s4: 130, awm: 75, dpi: "440 DPI", fire: 60, os: "android" },
+  { name: "POCO X4", gen: 185, red: 175, s2: 150, s4: 130, awm: 75, dpi: "440 DPI", fire: 60, os: "android" },
+  { name: "Redmi Note 12", gen: 190, red: 180, s2: 160, s4: 140, awm: 80, dpi: "440 DPI", fire: 55, os: "android" },
+  { name: "Redmi Note 11", gen: 195, red: 185, s2: 165, s4: 145, awm: 85, dpi: "440 DPI", fire: 60, os: "android" },
+  { name: "Oppo Find X5", gen: 185, red: 175, s2: 150, s4: 130, awm: 75, dpi: "440 DPI", fire: 55, os: "android" },
+  { name: "Oppo Reno 8", gen: 190, red: 180, s2: 160, s4: 140, awm: 80, dpi: "420 DPI", fire: 55, os: "android" },
+  { name: "Oppo Reno 7", gen: 190, red: 180, s2: 160, s4: 140, awm: 80, dpi: "420 DPI", fire: 55, os: "android" },
+  { name: "Oppo Reno 6", gen: 195, red: 185, s2: 165, s4: 145, awm: 85, dpi: "400 DPI", fire: 60, os: "android" },
+  { name: "Asus ROG Phone", gen: 170, red: 160, s2: 140, s4: 120, awm: 60, dpi: "480 DPI", fire: 65, os: "android" },
+  { name: "Vivo V27", gen: 185, red: 175, s2: 150, s4: 130, awm: 75, dpi: "440 DPI", fire: 55, os: "android" },
+  { name: "OnePlus 11", gen: 180, red: 170, s2: 150, s4: 130, awm: 70, dpi: "440 DPI", fire: 55, os: "android" },
+  { name: "Realme GT", gen: 185, red: 175, s2: 150, s4: 130, awm: 75, dpi: "420 DPI", fire: 55, os: "android" },
+  { name: "Huawei P50", gen: 190, red: 180, s2: 160, s4: 140, awm: 80, dpi: "440 DPI", fire: 55, os: "android" },
+  { name: "Dex Station", gen: 185, red: 175, s2: 150, s4: 130, awm: 75, dpi: "1080p", fire: 60, os: "android" }
+];
+
+// Hàm tìm kiếm
+function handleSearch() {
+    var query = document.getElementById("deviceInput").value.toLowerCase().trim();
+    var resBox = document.getElementById("resultBox");
+    var dlSection = document.getElementById("downloadSection");
+
+    if (!query) {
+        resBox.classList.remove("on");
+        dlSection.style.display = "none";
+        return;
+    }
+
+    // Dò tìm thiết bị khớp đầu tiên
+    var device = DB.find(function(d) {
+        return d.name.toLowerCase().includes(query);
+    });
+
+    if (device) {
+        document.getElementById("resTitle").textContent = device.name;
+        document.getElementById("rGen").textContent = device.gen;
+        document.getElementById("rRed").textContent = device.red;
+        document.getElementById("r2x").textContent = device.s2;
+        document.getElementById("r4x").textContent = device.s4;
+        document.getElementById("rAwm").textContent = device.awm;
+        document.getElementById("rDpi").textContent = device.dpi;
+        document.getElementById("rFire").textContent = device.fire;
+
+        resBox.classList.add("on");
+        dlSection.style.display = "block";
+
+        // Hiển thị link tải dựa vào hệ điều hành của máy vừa tìm
+        if (device.os === "ios") {
+            document.getElementById("iosDown").style.display = "block";
+            document.getElementById("adrDown").style.display = "none";
+        } else {
+            document.getElementById("iosDown").style.display = "none";
+            document.getElementById("adrDown").style.display = "block";
+        }
+    } else {
+        resBox.classList.remove("on");
+        dlSection.style.display = "none";
+    }
+}
+
+window.handleSearch = handleSearch;
+
+
+/* =========================================
+   NHẠC NỀN (TỰ ĐỘNG PHÁT)
+   ========================================= */
+var bgMusic = document.getElementById('bgMusic');
+// Vì chính sách của trình duyệt, nhạc chỉ phát khi có tương tác đầu tiên (click/chạm)
+document.body.addEventListener('click', function() {
+    if (bgMusic.paused) {
+        bgMusic.volume = 0.5; // Chỉnh âm lượng 50%
+        bgMusic.play().catch(function(e){ 
+            console.log("Không thể tự động phát nhạc:", e); 
+        });
+    }
+}, { once: true }); // Chỉ kích hoạt 1 lần
+
+
+/* =========================================
+   HIỆU ỨNG HẠT RƠI
+   ========================================= */
+var canvas = document.getElementById('particleCanvas');
+var ctx = canvas.getContext('2d');
+var particles = [];
+
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+for (var i = 0; i < 50; i++) {
+    particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        radius: Math.random() * 1.5 + 0.5,
+        speedY: Math.random() * 0.8 + 0.3,
+        speedX: (Math.random() - 0.5) * 0.4,
+        opacity: Math.random() * 0.5 + 0.1,
+        color: Math.random() > 0.5 ? '0, 217, 255' : '160, 108, 255'
+    });
+}
+
+function drawParticles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    for (var i = 0; i < particles.length; i++) {
+        var p = particles[i];
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(' + p.color + ',' + p.opacity + ')';
+        ctx.fill();
+        
+        p.y += p.speedY;
+        p.x += p.speedX;
+        
+        if (p.y > canvas.height) {
+            p.y = -10;
+            p.x = Math.random() * canvas.width;
+        }
+        if (p.x > canvas.width) p.x = 0;
+        if (p.x < 0) p.x = canvas.width;
+    }
+    requestAnimationFrame(drawParticles);
+}
+drawParticles();
+
+})();
+</script>
+</body>
+</html>
